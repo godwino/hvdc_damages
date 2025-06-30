@@ -10,7 +10,7 @@ os.makedirs("data", exist_ok=True)
 # Ensure the CSV file exists
 if not os.path.exists(DATA_FILE):
     df = pd.DataFrame(columns=[
-        "Date", "SKU", "Product Name", "Quantity",
+        "Date", "SKU", "Product Name", "Quantity", "Unit Price",
         "Damage Type", "Storage Zone", "Team", "Notes"
     ])
     df.to_csv(DATA_FILE, index=False)
@@ -37,6 +37,8 @@ if page == "📝 Submit Damage Report":
         sku = st.text_input("Product SKU or PLU")
         product = st.text_input("Product Name")
         qty = st.number_input("Quantity Damaged", min_value=1, step=1)
+        unit_price = st.number_input(
+            "Unit Price ($)", min_value=0.0, format="%.2f")
         damage_type = st.selectbox("Type of Damage", [
             "Crushed", "Leaking", "Broken Packaging", "Spoiled", "Other"
         ])
@@ -51,7 +53,6 @@ if page == "📝 Submit Damage Report":
         submitted = st.form_submit_button("Submit Report")
 
         if submitted:
-            # Simple validation
             if not sku or not product or qty < 1:
                 st.warning("Please fill out all required fields.")
             else:
@@ -60,6 +61,7 @@ if page == "📝 Submit Damage Report":
                     "SKU": sku,
                     "Product Name": product,
                     "Quantity": int(qty),
+                    "Unit Price": float(unit_price),
                     "Damage Type": damage_type,
                     "Storage Zone": zone,
                     "Team": team,
@@ -107,6 +109,16 @@ elif page == "📊 View Dashboard":
                     filtered_df = filtered_df[filtered_df["Damage Type"].isin(
                         damage_filter)]
             st.write("")
+
+            # Calculate and display total loss
+            try:
+                filtered_df["Total Loss"] = filtered_df["Quantity"].astype(
+                    float) * filtered_df["Unit Price"].astype(float)
+                st.metric("💸 Total Loss ($)",
+                          f"${filtered_df['Total Loss'].sum():,.2f}")
+            except Exception as e:
+                st.warning(
+                    "Could not calculate Total Loss. Make sure your reports include 'Unit Price' and 'Quantity'.")
 
             # Charts
             st.subheader("🔧 Damage by Type")
